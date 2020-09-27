@@ -1,4 +1,4 @@
-#!/venv/bin/python3
+#! venv/bin/python3
 
 from flask import request
 from flask_api import FlaskAPI, status
@@ -38,40 +38,45 @@ MAX_WORDS = 30
 # @limiter.exempt
 def print_text():
     try:
-        data = request.get_json()
-        if 'message' in data:
-            message = data['message']
-        else:
-            message = ''
+        try:
+            data = request.get_json()
+            if 'message' in data:
+                message = data['message']
+            else:
+                message = ''
 
-        if len(message.split()) > MAX_WORDS:
+            if len(message.split()) > MAX_WORDS:
+                return {
+                           'error': 'Message too long'
+                       }, status.HTTP_400_BAD_REQUEST
+
+            if 'formatting' in data:
+                formatting = convert_web_formatting_to_printer_codes(data['formatting'])
+            else:
+                formatting = None
+
+            if 'image' in data and data['image'] != "":
+                printer.print_image(data['image'])
+
+            if len(message) > 0:
+                printer.print_line(message, formatting)
+
+            if 'username' in data:
+                printer.print_signature(data['username'])
+
             return {
-                       'error': 'Message too long'
-                   }, status.HTTP_400_BAD_REQUEST
-
-        if 'formatting' in data:
-            formatting = convert_web_formatting_to_printer_codes(data['formatting'])
-        else:
-            formatting = None
-
-        if 'image' in data and data['image'] != "":
-            printer.print_image(data['image'])
-
-        if len(message) > 0:
-            printer.print_line(message, formatting)
-
-        if 'username' in data:
-            printer.print_signature(data['username'])
-
-
-        return {
-            'status': 'Message Printed!',
-            'paper': printer.get_status()['paper']
-        }
+                'status': 'Message Printed!',
+                'paper': printer.get_status()['paper']
+            }
+        except Exception as error:
+            return {
+                       "error": str(error),
+                       "paper": printer.get_status()['paper']
+                   }, status.HTTP_500_INTERNAL_SERVER_ERROR
     except Exception as error:
+        print('Error communicating with printer. Check the power and serial connections.')
         return {
-                   "error": str(error),
-                   "paper": printer.get_status()['paper']
+                   'error': 'Could not communicate with printer. Tell Louis to fix it.'
                }, status.HTTP_500_INTERNAL_SERVER_ERROR
 
 

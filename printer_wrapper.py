@@ -14,20 +14,17 @@ image_path = os.path.join(here, 'assets/LovePrint_resized.jpg')
 
 class PrinterWrapper:
     def __init__(self, print_welcome=True):
-        self.printer = ThermalPrinter("/dev/serial0", 9600, timeout=5)
+        self.printer = ThermalPrinter("/dev/serial0", 9600, heat_time=100, heat_interval=15)
 
         if check_printer_status(self.printer):
             if print_welcome:
                 self.print_boot_image()
-
 
             self.printer.sleep()
 
     def print_boot_image(self):
         self.printer.image(Image.open(image_path), True)
         self.printer.feed(3)
-
-
 
     # function also wraps by words
     # look at string, count characters
@@ -51,7 +48,7 @@ class PrinterWrapper:
                              upside_down=formatting['upside_down'],
                              underline=formatting['underline']
                              )
-            self.printer.feed(2)
+            self.printer.feed(1)
             self.printer.sleep()
         else:
             self.printer.sleep()
@@ -67,13 +64,17 @@ class PrinterWrapper:
         self.printer.image(image)
         self.printer.sleep()
 
-
     def print_signature(self, sig):
         self.printer.wake()
-        self.printer.out(sig, justify='L', size='S', underline=True)
+        date_string = get_date_string()
+
+        # padding to right-justify the timestamp (date_sting)
+        space_padding = ' ' * (self.printer.max_column - 1 - (len(date_string) + len(sig)))
+        self.printer.out('', line_feed=True)
+        self.printer.out(f'{sig}{space_padding}{date_string}'.strip(), justify='L', size='S', underline=False)
+
         self.printer.feed(3)
         self.printer.sleep()
-
 
     def get_status(self):
         try:
@@ -81,10 +82,12 @@ class PrinterWrapper:
         except:
             return {}
 
+
 # Helper Methods
 def has_paper(printer):
     status = printer.status()
     return status['paper']
+
 
 def get_image_from_data_uri(data_uri):
     image_data = data_uri.split(',', 1)[1]
@@ -93,13 +96,15 @@ def get_image_from_data_uri(data_uri):
     im_file = BytesIO(im_bytes)  # convert image to file-like object
     image = Image.open(im_file)  # img is now PIL Image object
 
-    # Paste transparent drawings on white background
+    # Paste transparent background drawings on white background
     white_image = Image.new('RGBA', image.size, 'WHITE')
-    white_image.paste(image, (0 ,0), image)
+    white_image.paste(image, (0, 0), image)
 
     return white_image
 
 
+def get_date_string():
+    return datetime.now().strftime("%H:%M %d/%m")
 
 
 # checks printer status dictionary to see if all values are True
