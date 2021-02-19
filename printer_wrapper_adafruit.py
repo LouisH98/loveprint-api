@@ -3,7 +3,7 @@ import base64
 import textwrap
 import os
 from io import BytesIO
-from PIL import Image
+from PIL import Image, ImageChops
 from datetime import datetime
 from Adafruit_Thermal import Adafruit_Thermal
 
@@ -51,8 +51,13 @@ class PrinterWrapper:
 
     def set_printer_formatting(self, formatting: dict):
         if formatting['upside_down']: self.printer.upsideDownOn()
-        if formatting['underline'] != 0: self.printer.underlineOn(formatting[['underline']])
+        else: self.printer.upsideDownOff()
+
+        if formatting['underline'] != 0: self.printer.underlineOn(formatting['underline'])
+        else: self.printer.underlineOff()
+
         if formatting['bold']: self.printer.boldOn()
+        else: self.printer.boldOff()
 
         self.printer.setSize(formatting['size'])
         self.printer.justify(formatting['justify'])
@@ -101,7 +106,6 @@ def has_paper(printer):
 
 def get_image_from_data_uri(data_uri):
     image_data = data_uri.split(',', 1)[1]
-    print(image_data)
     im_bytes = base64.b64decode(image_data)  # im_bytes is a binary image
     im_file = BytesIO(im_bytes)  # convert image to file-like object
     image = Image.open(im_file)  # img is now PIL Image object
@@ -109,6 +113,17 @@ def get_image_from_data_uri(data_uri):
     # Paste transparent background drawings on white background
     white_image = Image.new('RGBA', image.size, 'WHITE')
     white_image.paste(image, (0, 0), image)
+
+    # get bounding box and crop whitespace
+    bg = Image.new(image.mode, image.size, 'WHITE')
+    diff = ImageChops.difference(white_image, bg)
+    bbox = diff.getbbox()
+
+    if bbox:
+        image_bbox = white_image.getbbox()
+        # keep same width of original image
+        bbox_same_width = (image_bbox[0], bbox[1], image_bbox[2], bbox[3])
+        return white_image.crop(bbox_same_width)
 
     return white_image
 

@@ -14,7 +14,7 @@ image_path = os.path.join(here, 'assets/LovePrint_resized.jpg')
 
 class PrinterWrapper:
     def __init__(self, print_welcome=True):
-        self.printer = ThermalPrinter("/dev/serial0", 9600, heat_time=100, heat_interval=15)
+        self.printer = ThermalPrinter("/dev/serial0", 9600, heat_time=60, heat_interval=15)
 
         if check_printer_status(self.printer):
             if print_welcome:
@@ -39,6 +39,7 @@ class PrinterWrapper:
             }
         if check_printer_status(self.printer):
             max_col = (self.printer.max_column / (2 if formatting['size'] == 'L' else 1)) - 1
+            print("Max col", self.printer.max_column)
             text = textwrap.fill(text, max_col)
             self.printer.wake()
             self.printer.out(text,
@@ -53,6 +54,7 @@ class PrinterWrapper:
         else:
             self.printer.sleep()
             raise RuntimeError("Printer is out of paper")
+
 
     def print_image(self, image_data, is_data_uri=True):
         if is_data_uri:

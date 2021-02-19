@@ -12,20 +12,39 @@ pwm = GPIO.PWM(18, 1000)
 pwm.start(0)
 
 
+def my_callback(channel):
+    print("Button pressed!!")
 
-while True: # Run forever
-    brightness = 0
 
-    for interval in range(0, pwm_intervals):
-        brightness = math.pow(2, (interval / R)) - 1
-        pwm.ChangeDutyCycle(brightness)
-        sleep(0.015)
+def pulse_led():
+    try:
+        while True:  # Run forever
+            brightness = 0
 
-    for interval in range(pwm_intervals, -1, -1):
-        brightness = math.pow(2, (interval / R)) - 1
-        # brightness = 0 if brightness < 0.5 else brightness
-        # print(brightness)
+            for interval in range(0, pwm_intervals):
+                brightness = math.pow(2, (interval / R)) - 1
+                pwm.ChangeDutyCycle(brightness)
+                sleep(0.02)
 
-        pwm.ChangeDutyCycle(brightness)
-        sleep(0.015)
+            for interval in range(pwm_intervals, 10, -1):
+                brightness = math.pow(2, (interval / R)) - 1
+                pwm.ChangeDutyCycle(brightness)
+                sleep(0.02)
+    except:
+        GPIO.cleanup()
 
+
+pulse_led()
+
+# try:
+#     while True: # Run forever
+#
+#         for brightness in range(0, 101):
+#             pwm.ChangeDutyCycle(brightness)
+#             sleep(0.02)
+#
+#         for brightness in range(100, -1, -1):
+#             pwm.ChangeDutyCycle(brightness)
+#             sleep(0.02)
+# except KeyboardInterrupt:
+#     GPIO.cleanup()
